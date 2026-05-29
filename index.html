@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sohàil FX – Video to Text AI (Dark)</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --border: #333;
+            --text: #e0e0e0;
+            --accent: #4caf50;
+            --accent-glow: #66bb6a;
+            --error: #f44336;
+            --progress-bg: #333;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        nav {
+            background: #000;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222;
+        }
+        nav .logo {
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+        nav .menu a {
+            color: #aaa;
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        nav .menu a.active,
+        nav .menu a:hover {
+            color: var(--accent);
+        }
+        .container {
+            flex: 1;
+            max-width: 680px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent), #8bc34a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Upload area */
+        .upload-area {
+            display: block;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #1a1a1a;
+            margin-bottom: 1.5rem;
+        }
+        .upload-area:hover,
+        .upload-area:active {
+            border-color: var(--accent);
+            background: #1e2e1e;
+        }
+        .upload-area .icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .upload-area .text {
+            font-weight: 600;
+            color: #ccc;
+        }
+        .upload-area .hint {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 0.25rem;
+        }
+
+        /* File info after selection */
+        .file-info {
+            background: #1a3a1a;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            display: none;
+            font-weight: 600;
+            color: #b9f6ca;
+            word-break: break-all;
+        }
+
+        /* Status terminal */
+        .status-terminal {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #0f0;
+            min-height: 3em;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        /* Progress */
+        .progress-container {
+            display: none;
+            margin: 1rem 0;
+        }
+        .progress-bar {
+            height: 8px;
+            background: var(--progress-bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #8bc34a);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .progress-detail {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            color: #aaa;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 0.9rem;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin: 0.5rem 0;
+        }
+        .btn:hover:not(:disabled) {
+            background: #43a047;
+        }
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        .btn:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            background: #1a1a1a;
+            color: #fff;
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+            outline: none;
+        }
+
+        /* Result box */
+        .result-container {
+            display: none;
+            background: #1a1a1a;
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+        .result-text {
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.6;
+            color: #ccc;
+        }
+        .result-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: #111;
+            border-top: 1px solid #333;
+        }
+        .icon-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            transition: background 0.2s;
+        }
+        .icon-btn:hover {
+            background: #222;
+            border-color: var(--accent);
+        }
+
+        footer {
+            text-align: center;
+            padding: 1rem;
+            color: #666;
+            font-size: 0.8rem;
+            border-top: 1px solid #222;
+            margin-top: 2rem;
+        }
+        @media (max-width: 500px) {
+            .card { padding: 1.5rem 1rem; }
+            nav .menu a { margin-left: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="logo">SOHÀIL FX</div>
+    <div class="menu">
+        <a href="#" class="active">Home</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="card">
+        <h1> Video  Text AI</h1>
+        <p class="subtitle">100% private · your browser does the work</p>
+
+        <!-- Upload area -->
+        <label class="upload-area" for="fileInput" id="uploadLabel">
+            <div class="icon"></div>
+            <div class="text">Tap to select a video</div>
+            <div class="hint">MP4, MOV, WebM, audio files</div>
+        </label>
+        <input type="file" id="fileInput" accept="video/*,audio/*" hidden>
+
+        <!-- File info -->
+        <div class="file-info" id="fileInfo"></div>
+
+        <!-- Language -->
+        <select id="languageSelect">
+            <option value="en"> English</option>
+            <option value="hi"> Hindi</option>
+            <option value="ur"> Urdu</option>
+            <option value="es"> Spanish</option>
+            <option value="auto"> Auto-detect</option>
+        </select>
+
+        <!-- Transcribe button -->
+        <button class="btn" id="transcribeBtn"> Start Transcription</button>
+
+        <!-- Terminal status -->
+        <div class="status-terminal" id="statusTerminal"> Ready — waiting for file</div>
+
+        <!-- Progress bar -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-detail">
+                <span id="progressLabel">Loading...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="result-container" id="resultContainer">
+            <div class="result-text" id="transcriptText"></div>
+            <div class="result-actions">
+                <button class="icon-btn" id="copyBtn"><span></span> Copy</button>
+                <button class="icon-btn" id="downloadBtn"><span></span> Download</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer> Made by <strong>Sohàil FX</strong> </footer>
+
+<script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1/dist/transformers.min.js';
+    import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js';
+
+    // ---------- DOM references ----------
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const transcribeBtn = document.getElementById('transcribeBtn');
+    const statusTerminal = document.getElementById('statusTerminal');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const progressPercent = document.getElementById('progressPercent');
+    const resultContainer = document.getElementById('resultContainer');
+    const transcriptText = document.getElementById('transcriptText');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const languageSelect = document.getElementById('languageSelect');
+
+    // ---------- State ----------
+    let selectedFile = null;
+    let transcriber = null;
+    let ffmpeg = null;
+    let isModelReady = false;
+
+    // ---------- Log to terminal (and console) ----------
+    function log(message) {
+        console.log(message);
+        statusTerminal.textContent = ' ' + message;
+    }
+
+    // ---------- Initialize FFmpeg and Whisper ----------
+    async function initEngines() {
+        log('Loading FFmpeg...');
+        ffmpeg = new FFmpeg();
+        try {
+            await ffmpeg.load();
+            log('FFmpeg ready. Loading Whisper Tiny (~40 MB)...');
+        } catch (err) {
+            console.error('FFmpeg load error:', err);
+            log(' Error: FFmpeg failed to load. Please use a modern browser (Chrome/Edge) and check your internet.');
+            return;
+        }
+
+        try {
+            transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+                progress_callback: (progress) => {
+                    if (progress?.status === 'progress' && progress.total) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        log(`Downloading model... ${percent}%`);
+                        progressContainer.style.display = 'block';
+                        progressFill.style.width = percent + '%';
+                        progressLabel.textContent = 'Model download';
+                        progressPercent.textContent = percent + '%';
+                    }
+                }
+            });
+            isModelReady = true;
+            log(' AI ready. Select a video and start transcription.');
+            progressContainer.style.display = 'none';
+        } catch (err) {
+            console.error('Whisper model load error:', err);
+            log(' Failed to load AI model. Please refresh and try again.');
+        }
+    }
+
+    // Start loading immediately
+    initEngines();
+
+    // ---------- File selection ----------
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length === 0) return;
+        selectedFile = fileInput.files[0];
+        const sizeMB = (selectedFile.size / (1024 * 1024)).toFixed(1);
+        fileInfo.textContent = ` ${selectedFile.name} (${sizeMB} MB)`;
+        fileInfo.style.display = 'block';
+        log(`Selected: ${selectedFile.name}`);
+    });
+
+    // ---------- Transcription process ----------
+    transcribeBtn.addEventListener('click', async () => {
+        if (!selectedFile) {
+            log(' No file selected. Please tap the upload area.');
+            return;
+        }
+        if (!isModelReady) {
+            log(' AI still loading. Please wait for model to finish downloading.');
+            return;
+        }
+
+        // Reset UI
+        transcribeBtn.disabled = true;
+        resultContainer.style.display = 'none';
+        progressContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressPercent.textContent = '0%';
+        progressLabel.textContent = 'Starting...';
+
+        const startTime = Date.now();
+
+        try {
+            // 1. Read file into memory
+            log(` Reading ${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB file...`);
+            const arrayBuffer = await selectedFile.arrayBuffer();
+            progressFill.style.width = '10%';
+            progressPercent.textContent = '10%';
+            progressLabel.textContent = 'File loaded';
+
+            // 2. Extract audio with FFmpeg
+            log(' Extracting audio track...');
+            await ffmpeg.writeFile('input.mp4', new Uint8Array(arrayBuffer));
+            await ffmpeg.exec(['-i', 'input.mp4', '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', 'output.wav']);
+            const audioUint8 = await ffmpeg.readFile('output.wav');
+            progressFill.style.width = '30%';
+            progressPercent.textContent = '30%';
+            progressLabel.textContent = 'Audio extracted';
+
+            // 3. Decode audio to PCM float32
+            log(' Decoding audio...');
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            const audioBuffer = await audioCtx.decodeAudioData(audioUint8.buffer.slice());
+            const pcmData = audioBuffer.getChannelData(0);
+            const duration = audioBuffer.duration.toFixed(1);
+            log(`Audio decoded (${duration}s). Starting transcription...`);
+            progressFill.style.width = '60%';
+            progressPercent.textContent = '60%';
+            progressLabel.textContent = 'Transcribing';
+
+            // 4. Transcribe
+            const lang = languageSelect.value === 'auto' ? undefined : languageSelect.value;
+            const result = await transcriber(pcmData, {
+                chunk_length_s: 30,
+                stride_length_s: 5,
+                language: lang
+            });
+
+            // 5. Done
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            progressFill.style.width = '100%';
+            progressPercent.textContent = '100%';
+            progressLabel.textContent = 'Complete';
+            log(` Done in ${totalTime}s`);
+
+            transcriptText.textContent = result.text;
+            resultContainer.style.display = 'block';
+
+            // Cleanup virtual files
+            await ffmpeg.deleteFile('input.mp4');
+            await ffmpeg.deleteFile('output.wav');
+        } catch (err) {
+            console.error('Transcription error:', err);
+            log(` Error: ${err.message || 'Unknown error'}`);
+            progressContainer.style.display = 'none';
+        } finally {
+            transcribeBtn.disabled = false;
+        }
+    });
+
+    // ---------- Copy & Download ----------
+    copyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(transcriptText.textContent);
+            log(' Copied to clipboard!');
+        } catch {
+            log(' Copy failed. Select text manually.');
+        }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        const blob = new Blob([transcriptText.textContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'transcript.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        log(' Downloaded transcript.txt');
+    });
+</script>
+</body>
+</html>
