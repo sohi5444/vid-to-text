@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sohàil FX - Free Video to Text AI</title>
+    <meta name="description" content="Convert video to text free. AI transcription runs 100% in your browser. No upload to any server.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22></text></svg>">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #111111;
+            --card: #f8f8f8;
+            --border: #dddddd;
+            --accent: #000000;
+            --green: #00c853;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        nav {
+            background: #000;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav .logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+        nav .logo span { color: #ccc; font-weight: 400; }
+        nav .menu { display: flex; gap: 20px; }
+        nav .menu a {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        nav .menu a.active, nav .menu a:hover { color: #fff; }
+        .container {
+            max-width: 650px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px 15px;
+            flex: 1;
+        }
+        .card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .card h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 5px;
+        }
+        .card .subtitle {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+        }
+        /* Upload Area */
+        .upload-area {
+            display: block;
+            width: 100%;
+            padding: 40px 20px;
+            background: #fff;
+            border: 3px dashed #aaa;
+            border-radius: 16px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+            text-align: center;
+            position: relative;
+        }
+        .upload-area:hover, .upload-area:active {
+            border-color: #000;
+            background: #f5f5f5;
+        }
+        .upload-area .upload-icon {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: 15px;
+        }
+        .upload-area .upload-text {
+            color: #333;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .upload-area .upload-hint {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        /* File Info Box */
+        .file-info {
+            display: none;
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        .file-info .file-name {
+            font-weight: 700;
+            color: #000;
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+        .file-info .file-size {
+            color: #555;
+            font-size: 0.85rem;
+            margin-top: 3px;
+        }
+        .file-info .privacy-note {
+            color: #2e7d32;
+            font-size: 0.75rem;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        .file-info .privacy-note span { font-weight: 700; }
+        /* Buttons */
+        .btn {
+            background: #000;
+            color: #fff;
+            border: 2px solid #000;
+            padding: 14px 30px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 8px 5px;
+            min-width: 200px;
+        }
+        .btn:hover {
+            background: #fff;
+            color: #000;
+        }
+        .btn:disabled {
+            background: #ccc;
+            color: #888;
+            border-color: #ccc;
+            cursor: not-allowed;
+        }
+        select {
+            background: #fff;
+            border: 2px solid #000;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 8px 5px;
+            min-width: 150px;
+        }
+        /* Status */
+        #status {
+            margin: 15px 0;
+            font-weight: 600;
+            font-size: 0.95rem;
+            min-height: 25px;
+            color: #000;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+        /* Progress */
+        .progress-wrap {
+            display: none;
+            margin: 15px 0;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #000;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        .progress-percent {
+            text-align: right;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-top: 3px;
+        }
+        /* Result */
+        .result {
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: left;
+            max-height: 350px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #000;
+        }
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .small-btn {
+            background: #fff;
+            border: 2px solid #000;
+            color: #000;
+            padding: 10px 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .small-btn:hover {
+            background: #000;
+            color: #fff;
+        }
+        /* Info Alert */
+        .info-alert {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 0.8rem;
+            color: #856404;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .info-alert strong { display: block; margin-bottom: 3px; }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-size: 0.85rem;
+            margin-top: auto;
+        }
+        @media (max-width: 500px) {
+            .card { padding: 20px 12px; }
+            .card h1 { font-size: 1.6rem; }
+            .btn { padding: 12px 20px; min-width: 150px; }
+            .upload-area { padding: 30px 15px; }
+            .upload-area .upload-icon { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">SOHÀIL<span>FX</span></div>
+    <div class="menu">
+        <a href="index.html" class="active">Home</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="card">
+        <h1> Video  Text</h1>
+        <p class="subtitle">Free AI Transcription — 100% Browser-Based, Private & Unlimited</p>
+
+        <!-- Upload Area -->
+        <label for="fileInput" class="upload-area" id="uploadLabel">
+            <span class="upload-icon"></span>
+            <span class="upload-text">Tap to Select Video</span>
+            <span class="upload-hint">MP4, MOV, AVI, MKV, Audio files supported</span>
+        </label>
+        <input type="file" id="fileInput" accept="video/*,audio/*" style="position:absolute;opacity:0;width:0;height:0;">
+
+        <!-- File Info (shows after selection) -->
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName">—</div>
+            <div class="file-size" id="fileSize">—</div>
+            <div class="privacy-note">
+                 <span>100% Private:</span> Your file stays on your device. Nothing is uploaded to any server. All processing happens right here in your browser.
+            </div>
+        </div>
+
+        <!-- Language -->
+        <select id="languageSelect">
+            <option value="en"> English</option>
+            <option value="hi"> Hindi</option>
+            <option value="ur"> Urdu</option>
+            <option value="ar"> Arabic</option>
+            <option value="fr"> French</option>
+            <option value="es"> Spanish</option>
+            <option value="auto"> Auto-Detect</option>
+        </select>
+
+        <!-- Transcribe Button -->
+        <button class="btn" id="transcribeBtn" disabled> Start Transcription</button>
+
+        <!-- Status -->
+        <div id="status"> Loading AI engine, please wait...</div>
+
+        <!-- Progress -->
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress-label">
+                <span id="progressStep">Processing...</span>
+                <span>—</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-percent" id="progressPercent">0%</div>
+        </div>
+
+        <!-- Privacy Info -->
+        <div class="info-alert" id="infoAlert">
+            <strong> Where does my data go?</strong>
+            Your video file is processed <strong>entirely inside your browser</strong>. It is NEVER uploaded to any cloud server, database, or external service. The AI model runs locally in your browser memory. Once you close this tab, all data is gone forever.
+        </div>
+
+        <!-- Result -->
+        <div class="result" id="resultBox">
+            <div id="transcriptText"></div>
+            <div class="result-actions">
+                <button class="small-btn" id="copyBtn"> Copy Text</button>
+                <button class="small-btn" id="downloadBtn"> Download .txt</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+     Made by <strong>Sohàil FX</strong> 
+</footer>
+
+<script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1/dist/transformers.min.js';
+    import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js';
+
+    // DOM
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const transcribeBtn = document.getElementById('transcribeBtn');
+    const statusDiv = document.getElementById('status');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressStep = document.getElementById('progressStep');
+    const resultBox = document.getElementById('resultBox');
+    const transcriptText = document.getElementById('transcriptText');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const languageSelect = document.getElementById('languageSelect');
+
+    let selectedFile = null;
+    let transcriber = null;
+
+    // ----- FILE SELECTION -----
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files && fileInput.files.length > 0) {
+            selectedFile = fileInput.files[0];
+            
+            // Show file info
+            fileName.textContent = ' ' + selectedFile.name;
+            const sizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+            fileSize.textContent = ' Size: ' + sizeMB + ' MB';
+            fileInfo.style.display = 'block';
+            
+            transcribeBtn.disabled = false;
+            statusDiv.textContent = ' File ready! Click "Start Transcription" to begin.';
+        }
+    });
+
+    // ----- LOAD AI -----
+    statusDiv.textContent = ' Loading processing engine...';
+
+    const ffmpeg = new FFmpeg();
+    try {
+        await ffmpeg.load();
+        statusDiv.textContent = ' Downloading AI model (one-time ~140MB, cached after first use)...';
+    } catch(e) {
+        statusDiv.textContent = ' Failed to load. Check your internet connection.';
+        console.error(e);
+    }
+
+    try {
+        transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base', {
+            progress_callback: function(info) {
+                if (info && info.status === 'progress' && info.total) {
+                    let pct = Math.round((info.loaded / info.total) * 100);
+                    statusDiv.textContent = ' Downloading AI model... ' + pct + '% (cached for next time)';
+                }
+            }
+        });
+        statusDiv.textContent = ' AI ready! Select a video file to transcribe.';
+    } catch(e) {
+        statusDiv.textContent = ' AI model failed to load. Please refresh the page.';
+        console.error(e);
+    }
+
+    // ----- TRANSCRIBE -----
+    transcribeBtn.addEventListener('click', async function() {
+        if (!selectedFile || !transcriber) {
+            statusDiv.textContent = ' Please select a file and wait for AI to load.';
+            return;
+        }
+
+        transcribeBtn.disabled = true;
+        resultBox.style.display = 'none';
+        progressWrap.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressPercent.textContent = '0%';
+        progressStep.textContent = 'Reading file...';
+        statusDiv.textContent = ' Processing your video...';
+
+        try {
+            // Step 1: Read file
+            progressFill.style.width = '10%';
+            progressPercent.textContent = '10%';
+            progressStep.textContent = 'Reading video file...';
+            
+            const buffer = await selectedFile.arrayBuffer();
+            
+            // Step 2: Extract audio
+            progressFill.style.width = '20%';
+            progressPercent.textContent = '20%';
+            progressStep.textContent = 'Extracting audio track...';
+            
+            await ffmpeg.writeFile('input.mp4', new Uint8Array(buffer));
+            await ffmpeg.exec(['-i', 'input.mp4', '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', 'output.wav']);
+            
+            progressFill.style.width = '40%';
+            progressPercent.textContent = '40%';
+            progressStep.textContent = 'Reading audio data...';
+            
+            const audioData = await ffmpeg.readFile('output.wav');
+            
+            // Step 3: Decode
+            progressFill.style.width = '55%';
+            progressPercent.textContent = '55%';
+            progressStep.textContent = 'Decoding audio...';
+            
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            const audioBuffer = await audioCtx.decodeAudioData(audioData.buffer.slice());
+            const pcm = audioBuffer.getChannelData(0);
+            
+            // Step 4: Transcribe
+            progressFill.style.width = '70%';
+            progressPercent.textContent = '70%';
+            progressStep.textContent = 'AI transcribing... (this may take a minute)';
+            statusDiv.textContent = ' AI is transcribing your video... Please wait.';
+
+            const lang = languageSelect.value === 'auto' ? undefined : languageSelect.value;
+            const result = await transcriber(pcm, {
+                chunk_length_s: 30,
+                stride_length_s: 5,
+                language: lang
+            });
+
+            // Done
+            progressFill.style.width = '100%';
+            progressPercent.textContent = '100%';
+            progressStep.textContent = 'Complete!';
+            statusDiv.textContent = ' Transcription finished!';
+            transcriptText.textContent = result.text;
+            resultBox.style.display = 'block';
+            transcribeBtn.disabled = false;
+
+            // Cleanup
+            await ffmpeg.deleteFile('input.mp4');
+            await ffmpeg.deleteFile('output.wav');
+            
+        } catch(err) {
+            console.error(err);
+            statusDiv.textContent = ' Error: ' + err.message;
+            transcribeBtn.disabled = false;
+            progressWrap.style.display = 'none';
+        }
+    });
+
+    // ----- COPY -----
+    copyBtn.addEventListener('click', function() {
+        if (transcriptText.textContent) {
+            navigator.clipboard.writeText(transcriptText.textContent).then(() => {
+                statusDiv.textContent = ' Text copied to clipboard!';
+            }).catch(() => {
+                statusDiv.textContent = ' Copy failed. Please select text manually.';
+            });
+        }
+    });
+
+    // ----- DOWNLOAD -----
+    downloadBtn.addEventListener('click', function() {
+        if (transcriptText.textContent) {
+            const blob = new Blob([transcriptText.textContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'transcript.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            statusDiv.textContent = ' Downloaded as transcript.txt';
+        }
+    });
+</script>
+
+</body>
+</html>
