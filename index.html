@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sohàil FX – Video to Text AI</title>
+    <!-- File is in root folder -->
+    <script src="transformers.min.js"></script>
+    <style>
+        :root {
+            --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #c9d1d9;
+            --accent: #58a6ff; --green: #3fb950; --red: #f85149; --terminal-bg: #0a0a0a;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        nav {
+            background: #000; padding: 1rem 1.5rem; border-bottom: 1px solid #222;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        nav .logo { font-weight:700; font-size:1.2rem; color:#fff; }
+        nav .menu a { color: #aaa; text-decoration: none; margin-left: 1.5rem; font-size: 0.9rem; }
+        nav .menu a.active, nav .menu a:hover { color: var(--accent); }
+        .container { max-width: 600px; width: 100%; margin: 2rem auto; padding: 0 1rem; flex: 1; }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 2rem 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        h1 { text-align:center; font-size:1.8rem; margin-bottom:0.5rem; color:#fff; }
+        .subtitle { text-align:center; color:#8b949e; margin-bottom:2rem; }
+        .file-btn-wrapper {
+            position: relative; display: block; margin: 0 auto 1rem; max-width: 250px;
+        }
+        .file-btn-wrapper input[type="file"] {
+            position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer; font-size: 0;
+        }
+        .file-btn-wrapper .fake-btn {
+            display: block; background: var(--accent); color: #000; font-weight: 700;
+            padding: 0.8rem 2rem; border-radius: 30px; text-align: center; pointer-events: none;
+        }
+        .file-btn-wrapper:active .fake-btn { background: #1f6feb; }
+        #fileDisplay {
+            font-size: 0.9rem; color: var(--green); word-break: break-all; text-align: center;
+            min-height: 1.2em; margin-bottom: 1rem;
+        }
+        select, .btn { width: 100%; padding: 0.8rem; border-radius: 30px; font-size: 1rem; margin: 0.5rem 0; }
+        select { background: #1a1a1a; border: 1px solid var(--border); color: #fff; }
+        .btn { background: var(--green); border: none; color: #000; font-weight: 700; cursor: pointer; }
+        .btn:disabled { background: #444; color:#888; cursor:not-allowed; }
+        .terminal {
+            background: var(--terminal-bg); border: 1px solid #333; border-radius: 8px;
+            padding: 1rem; font-family: monospace; font-size: 0.85rem; color: #0f0;
+            margin: 1rem 0; min-height: 3em; white-space: pre-wrap; line-height: 1.5;
+        }
+        .progress { display: none; margin: 1rem 0; }
+        .progress-bar { height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+        .progress-info { display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 0.3rem; color: #aaa; }
+        .result-box { display: none; background: #1a1a1a; border: 1px solid var(--green); border-radius: 12px; margin-top: 1rem; }
+        .result-text { padding: 1rem; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+        .result-actions { display: flex; gap: 0.5rem; padding: 0.75rem; background: #111; border-top: 1px solid #333; }
+        .icon-btn { flex:1; background: transparent; border:1px solid #444; color:#ccc; padding:0.5rem; border-radius:6px; cursor:pointer; }
+        .icon-btn:hover { border-color: var(--accent); }
+        footer { text-align:center; padding:1rem; color:#666; border-top:1px solid #222; margin-top:2rem; }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="logo">SOHÀIL FX</div>
+    <div class="menu">
+        <a href="#" class="active">Home</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="card">
+        <h1> Video  Text</h1>
+        <p class="subtitle">100% private · No upload · Works offline after first load</p>
+
+        <div class="file-btn-wrapper">
+            <input type="file" id="fileInput" accept="video/*,audio/*">
+            <div class="fake-btn"> Choose Video</div>
+        </div>
+        <div id="fileDisplay"></div>
+
+        <select id="langSelect">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="ur">Urdu</option>
+            <option value="auto">Auto-detect</option>
+        </select>
+
+        <button class="btn" id="transcribeBtn"> Start Transcription</button>
+
+        <div class="terminal" id="terminal"> Loading AI engine…</div>
+
+        <div class="progress" id="progressBox">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-info">
+                <span id="progressLabel">—</span>
+                <span id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <div class="result-box" id="resultBox">
+            <div class="result-text" id="transcriptText"></div>
+            <div class="result-actions">
+                <button class="icon-btn" id="copyBtn"> Copy</button>
+                <button class="icon-btn" id="downloadBtn"> Download</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer> Made by <strong>Sohàil FX</strong> </footer>
+
+<script>
+    // Simple wait for the library to load
+    function waitForPipeline() {
+        return new Promise((resolve) => {
+            if (window.pipeline) {
+                resolve();
+                return;
+            }
+            const check = setInterval(() => {
+                if (window.pipeline) {
+                    clearInterval(check);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+</script>
+
+<script type="module">
+    const terminal = document.getElementById('terminal');
+    function log(msg) {
+        console.log(msg);
+        terminal.textContent = ' ' + msg;
+    }
+
+    const fileInput = document.getElementById('fileInput');
+    const fileDisplay = document.getElementById('fileDisplay');
+    const transcribeBtn = document.getElementById('transcribeBtn');
+    const progressBox = document.getElementById('progressBox');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const progressPercent = document.getElementById('progressPercent');
+    const resultBox = document.getElementById('resultBox');
+    const transcriptText = document.getElementById('transcriptText');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const langSelect = document.getElementById('langSelect');
+
+    let selectedFile = null;
+    let transcriber = null;
+    let modelReady = false;
+
+    // File selection
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            selectedFile = fileInput.files[0];
+            const sizeMB = (selectedFile.size / (1024*1024)).toFixed(1);
+            fileDisplay.textContent = ` ${selectedFile.name} (${sizeMB} MB)`;
+            log(`Selected: ${selectedFile.name}`);
+        }
+    });
+
+    // Load Whisper model
+    async function loadModel() {
+        log('Downloading Whisper Tiny model (~40 MB)…');
+        try {
+            transcriber = await window.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+                progress_callback: (p) => {
+                    if (p?.status === 'progress' && p.total) {
+                        const pct = Math.round((p.loaded / p.total) * 100);
+                        log(`Model download: ${pct}%`);
+                        progressBox.style.display = 'block';
+                        progressFill.style.width = pct + '%';
+                        progressPercent.textContent = pct + '%';
+                        progressLabel.textContent = 'Downloading AI model';
+                    }
+                }
+            });
+            modelReady = true;
+            progressBox.style.display = 'none';
+            log(' AI ready! Select a video and click Start Transcription.');
+        } catch (err) {
+            console.error(err);
+            log(` Failed to load AI: ${err.message}`);
+        }
+    }
+
+    // Start
+    async function init() {
+        log('Waiting for library...');
+        await waitForPipeline();
+        log(' Library ready. Loading AI model...');
+        await loadModel();
+    }
+
+    init();
+
+    // Audio extraction (browser-based, no FFmpeg)
+    async function extractAudio(file) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.muted = true;
+            video.playsInline = true;
+            const url = URL.createObjectURL(file);
+            video.src = url;
+
+            video.onloadedmetadata = async () => {
+                const duration = video.duration;
+                if (!isFinite(duration) || duration === 0) {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Cannot read video. Unsupported format?'));
+                    return;
+                }
+                const sampleRate = 16000;
+                const offlineCtx = new OfflineAudioContext(1, sampleRate * duration, sampleRate);
+                const source = offlineCtx.createMediaElementSource(video);
+                source.connect(offlineCtx.destination);
+                try {
+                    video.play();
+                    const renderedBuffer = await offlineCtx.startRendering();
+                    video.pause();
+                    URL.revokeObjectURL(url);
+                    resolve({ pcm: renderedBuffer.getChannelData(0), duration });
+                } catch (e) {
+                    URL.revokeObjectURL(url);
+                    reject(e);
+                }
+            };
+            video.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Failed to load video.'));
+            };
+        });
+    }
+
+    // Transcription
+    transcribeBtn.addEventListener('click', async () => {
+        if (!selectedFile) {
+            log(' No file selected.');
+            return;
+        }
+        if (!modelReady) {
+            log(' AI still loading. Please wait...');
+            return;
+        }
+
+        transcribeBtn.disabled = true;
+        resultBox.style.display = 'none';
+        progressBox.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressPercent.textContent = '0%';
+        const start = Date.now();
+
+        try {
+            log(' Extracting audio...');
+            progressLabel.textContent = 'Extracting audio';
+            progressFill.style.width = '30%';
+            progressPercent.textContent = '30%';
+
+            const { pcm, duration } = await extractAudio(selectedFile);
+            log(` Audio ready (${duration.toFixed(1)}s). Transcribing...`);
+
+            progressLabel.textContent = 'Transcribing';
+            progressFill.style.width = '60%';
+            progressPercent.textContent = '60%';
+
+            const lang = langSelect.value === 'auto' ? undefined : langSelect.value;
+            const result = await transcriber(pcm, {
+                chunk_length_s: 30,
+                stride_length_s: 5,
+                language: lang
+            });
+
+            const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+            progressFill.style.width = '100%';
+            progressPercent.textContent = '100%';
+            progressLabel.textContent = `Done in ${elapsed}s`;
+            log(` Done in ${elapsed}s`);
+
+            transcriptText.textContent = result.text;
+            resultBox.style.display = 'block';
+        } catch (err) {
+            console.error(err);
+            log(` Error: ${err.message}`);
+            progressBox.style.display = 'none';
+        } finally {
+            transcribeBtn.disabled = false;
+        }
+    });
+
+    // Copy & Download
+    copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(transcriptText.textContent);
+        log(' Copied!');
+    });
+    downloadBtn.addEventListener('click', () => {
+        const blob = new Blob([transcriptText.textContent], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'transcript.txt';
+        a.click();
+        log(' Downloaded.');
+    });
+</script>
+</body>
+</html>
